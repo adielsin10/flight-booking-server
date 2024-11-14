@@ -8,16 +8,30 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: flights_db
     ports:
-      - "5434:5432"  # הפורט החיצוני 5434, הפנימי   נשאר 5432
+      - "5434:5432"  # הפורט החיצוני 5434, הפנימי נשאר 5432
     volumes:
       - db_data:/var/lib/postgresql/data
 
-  server:
-    build: .
+  server:  # קונטיינר השרת
+    build:
+      context: .
+      dockerfile: Dockerfile  # משתמש בקובץ Dockerfile עבור השרת
     ports:
-      - "5000:5000"  # הגדרת הפורט 5000 עבור  השרת
+      - "5000:5000"  # הגדרת הפורט 5000 עבור השרת
     depends_on:
       - db
+
+  tests:  # קונטיינר הבדיקות
+    build:
+      context: .
+      dockerfile: Dockerfile.test  # משתמש בקובץ Dockerfile.test לבדיקות
+    depends_on:
+      - server  # מחכה שקונטיינר השרת יעלה
+    environment:
+      # במידת הצורך, הוסף משתני סביבה לקונטיינר הבדיקות
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: flights_db
 
 volumes:
   db_data:
