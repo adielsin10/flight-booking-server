@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const { searchFlights } = require('./flightService'); // ייבוא הפונקציה
 const app = express();
 const PORT = 5000;
 
@@ -14,20 +15,20 @@ const flights = [
 
 // הגדרת מסלול לקבלת נתוני טיסות
 app.get('/api/flights', (req, res) => {
-    const { from, to, maxPrice } = req.query;
-    
-    // מסנן את הטיסות לפי הפרמטרים מהבקשה
-    const filteredFlights = flights.filter(flight => {
-      const matchesFrom = from ? flight.from.toLowerCase() === from.toLowerCase() : true;
-      const matchesTo = to ? flight.to.toLowerCase() === to.toLowerCase() : true;
-      const matchesPrice = maxPrice ? flight.price <= parseFloat(maxPrice) : true;
-      
-      return matchesFrom && matchesTo && matchesPrice;
-    });
-    
-    res.json(filteredFlights);
-  });
-  
+  const { from, to, maxPrice } = req.query;
+
+  // הפעלת הפונקציה searchFlights לסינון הטיסות
+  const filteredFlights = searchFlights(
+    flights,
+    from,
+    to,
+    undefined, // אין צורך בתאריך, אז נשלח undefined
+    maxPrice ? parseFloat(maxPrice) : undefined
+  );
+
+  res.json(filteredFlights);
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
