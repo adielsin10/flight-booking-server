@@ -1,7 +1,18 @@
-# Dockerfile.test
 FROM node:14
+
 WORKDIR /app
+
+# העתק קבצי חבילה
 COPY package*.json ./
-RUN npm install
+
+# התקן את כל התלויות, כולל תלויות פיתוח
+RUN npm install --include=dev
+
+# העתק את כל קבצי הפרויקט
 COPY . .
+
+# התקן Jest באופן גלובלי
+RUN npm install -g jest
+
+# פקודת ברירת מחדל להרצת בדיקות
 CMD ["npm", "test"]
