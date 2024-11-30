@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { Pool } = require('pg');
+const { Pool, Client } = require('pg'); // מייבא גם את Client בשביל יצירת מסד נתונים אם צריך
 const app = express();
 const PORT = 5000;
 
@@ -13,8 +13,41 @@ const pool = new Pool({
   port: 5432,
 });
 
+// חיבור לשרת PostgreSQL ללא מסד נתונים ספציפי (לבדוק אם קיים ולהוסיף אם לא)
+const client = new Client({
+  user: 'postgres',
+  host: 'localhost',
+  password: 'password',
+  port: 5432,
+});
+
 app.use(cors());
 app.use(express.json());
+
+// יצירת מסד נתונים אם לא קיים
+async function createDatabaseIfNotExists() {
+  try {
+    // מחבר למסד הנתונים (ללא ציון מסד ספציפי)
+    await client.connect();
+
+    // מוודא אם מסד הנתונים קיים
+    const res = await client.query("SELECT 1 FROM pg_database WHERE datname = 'flights';");
+
+    if (res.rowCount === 0) {
+      console.log("");
+      // יוצר את מסד הנתונים אם לא קיים
+      await client.query('CREATE DATABASE flights;');
+      console.log("");
+    } else {
+      console.log("");
+    }
+  } catch (error) {
+    console.error('', error);
+  } finally {
+    // סוגר את החיבור למסד הנתונים
+    await client.end();
+  }
+}
 
 // יצירת הטבלאות אם לא קיימות
 async function initializeDatabase() {
@@ -115,8 +148,25 @@ async function insertInitialFlights() {
       ]
     );
   }
-  console.log('טיסות ראשוניות נוספו בהצלחה');
+  console.log('');
 }
+
+// אתחול השרת
+createDatabaseIfNotExists()
+  .then(() => {
+    initializeDatabase()
+      .then(() => {
+        app.listen(PORT, () => {
+          console.log(`Server is running on http://localhost:${PORT}`);
+        });
+      })
+      .catch(error => {
+        console.error('Failed to initialize the database:', error);
+      });
+  })
+  .catch(error => {
+    console.error('Failed to start server:', error);
+  });
 
 // חיפוש טיסות לפי פרמטרים
 app.get('/api/flights', async (req, res) => {
@@ -195,25 +245,12 @@ app.post('/api/reservations', async (req, res) => {
     }
 
     const result = await pool.query(
-      'INSERT INTO reservations (flight_id, name, last_name, phone, email, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [flightId, name, lastName, phone, email, 'confirmed']
+      'INSERT INTO reservations (flight_id, name, last_name, phone, email) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [flightId, name, lastName, phone, email]
     );
-    
-    const newReservation = result.rows[0];
-    res.status(201).json(newReservation);
+    res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('שגיאה ביצירת הזמנה:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
-// אתחול השרת
-initializeDatabase()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server is running on http://localhost:${PORT}`);
-    });
-  })
-  .catch(error => {
-    console.error('Failed to start server:', error);
-  });
