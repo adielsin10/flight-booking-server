@@ -55,5 +55,5 @@ jobs:
       with:
         context: .
         file: ./Dockerfile
-        push: true
+        push: true 
         tags: ${{ secrets.DOCKER_USERNAME }}/flight-booking:latest
