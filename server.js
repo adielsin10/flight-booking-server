@@ -1,58 +1,25 @@
 const express = require('express');
 const cors = require('cors');
-const { Pool, Client } = require('pg'); // מייבא גם את Client בשביל יצירת מסד נתונים אם צריך
+const { Pool } = require('pg');
 const app = express();
 const PORT = 5000;
 
-// חיבור למסד נתונים PostgreSQL
+// הגדרת חיבור למסד נתונים PostgreSQL בתוך Docker
 const pool = new Pool({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'flights',
-  password: 'password',
-  port: 5432,
-});
-
-// חיבור לשרת PostgreSQL ללא מסד נתונים ספציפי (לבדוק אם קיים ולהוסיף אם לא)
-const client = new Client({
-  user: 'postgres',
-  host: 'localhost',
-  password: 'password',
-  port: 5432,
+  user: 'user',              // תואם ל-POSTGRES_USER ב-docker-compose.yml
+  host: 'db',                // תואם לשם השירות בקובץ docker-compose.yml
+  database: 'flights_db',    // תואם ל-POSTGRES_DB
+  password: 'password',      // תואם ל-POSTGRES_PASSWORD
+  port: 5432,                // פורט ברירת המחדל של PostgreSQL
 });
 
 app.use(cors());
 app.use(express.json());
 
-// יצירת מסד נתונים אם לא קיים
-async function createDatabaseIfNotExists() {
-  try {
-    // מחבר למסד הנתונים (ללא ציון מסד ספציפי)
-    await client.connect();
-
-    // מוודא אם מסד הנתונים קיים
-    const res = await client.query("SELECT 1 FROM pg_database WHERE datname = 'flights';");
-
-    if (res.rowCount === 0) {
-      console.log("");
-      // יוצר את מסד הנתונים אם לא קיים
-      await client.query('CREATE DATABASE flights;');
-      console.log("");
-    } else {
-      console.log("");
-    }
-  } catch (error) {
-    console.error('', error);
-  } finally {
-    // סוגר את החיבור למסד הנתונים
-    await client.end();
-  }
-}
-
-// יצירת הטבלאות אם לא קיימות
+// יצירת הטבלאות אם לא קיימות והוספת נתוני התחלה
 async function initializeDatabase() {
   try {
-    // טבלת טיסות
+    // יצירת טבלאות
     await pool.query(`
       CREATE TABLE IF NOT EXISTS flights (
         id SERIAL PRIMARY KEY,
@@ -72,7 +39,6 @@ async function initializeDatabase() {
       )
     `);
 
-    // טבלת הזמנות
     await pool.query(`
       CREATE TABLE IF NOT EXISTS reservations (
         id SERIAL PRIMARY KEY,
@@ -88,6 +54,7 @@ async function initializeDatabase() {
     // הוספת טיסות ראשוניות אם הטבלה ריקה
     const flightsResult = await pool.query('SELECT COUNT(*) FROM flights');
     if (parseInt(flightsResult.rows[0].count) === 0) {
+      console.log('Adding initial flights...');
       await insertInitialFlights();
     }
   } catch (error) {
@@ -148,21 +115,15 @@ async function insertInitialFlights() {
       ]
     );
   }
-  console.log('');
+  console.log('Initial flights added successfully!');
 }
 
 // אתחול השרת
-createDatabaseIfNotExists()
+initializeDatabase()
   .then(() => {
-    initializeDatabase()
-      .then(() => {
-        app.listen(PORT, () => {
-          console.log(`Server is running on http://localhost:${PORT}`);
-        });
-      })
-      .catch(error => {
-        console.error('Failed to initialize the database:', error);
-      });
+    app.listen(PORT, () => {
+      console.log(`Server is running on http://localhost:${PORT}`);
+    });
   })
   .catch(error => {
     console.error('Failed to start server:', error);
