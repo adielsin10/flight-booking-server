@@ -9,7 +9,7 @@ test('searchFlights - filters flights by from, to, date, and maxPrice', () => {
     { id: 3, from: 'NYC', to: 'Paris', date: '2024-12-02', price: 700 },
   ];
   const result = searchFlights(flights, 'NYC', 'Paris', '2024-12-01', 600);
-  expect(result).toEqual([{ id: 1, from: 'NYC', to: 'Paris', date: '2024-12-01', price: 500 }]);
+  expect(result).toEqual([{ id: 1, from: 'llll', to: 'Paris', date: '2024-12-01', price: 500 }]);
 });
 
 // בדיקה כאשר אין טיסות שמתאימות
