@@ -1,7 +1,7 @@
 // flightService.test.js
 const { searchFlights } = require('../flightService');
 
-// בדיקה לפונקציית חיפוש טיסות עם כל הפרמטרים
+// בדיקה לפונקציית  חיפוש טיסות עם כל הפרמטרים
 test('searchFlights - filters flights by from, to, date, and maxPrice', () => {
   const flights = [
     { id: 1, from: 'NYC', to: 'Paris', date: '2024-12-01', price: 500 },
